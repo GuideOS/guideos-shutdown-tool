@@ -1,7 +1,7 @@
 # guideos-shutdown-tool
-GUI tool to utilize xkill
+GUI based shutdown timer
     
-[![build result](https://build.opensuse.org/projects/home:guideos/packages/guideos-stop-tool/badge.svg?type=default)](https://build.opensuse.org/package/show/home:guideos/guideos-stop-tool)    
+[![build result](https://build.opensuse.org/projects/home:guideos/packages/guideos-shutdown-tool/badge.svg?type=default)](https://build.opensuse.org/package/show/home:guideos/guideos-shutdown-tool)
     
 ## Build DEB
 
