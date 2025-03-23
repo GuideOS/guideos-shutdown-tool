@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Funktion zum Herunterfahren mit Countdown
+shutdown_with_countdown() {
+    local total_seconds="$1"
+
+    while [[ $total_seconds -gt 0 ]]; do
+        # Berechnung der verbleibenden Zeit
+        hours=$((total_seconds / 3600))
+        minutes=$(( (total_seconds % 3600) / 60 ))
+        seconds=$((total_seconds % 60 ))
+
+        # Countdown-Anzeige aktualisieren
+        echo "# Zeit bis zum Herunterfahren: ${hours} Stunden, ${minutes} Minuten, ${seconds} Sekunden"
+        echo $((100 - (total_seconds * 100 / $initial_seconds)))
+
+        # Überprüfen, ob der Benutzer den Vorgang abgebrochen hat
+        if [[ -f /tmp/timer_abort ]]; then
+            rm /tmp/timer_abort
+            zenity --info --text="Der Timer wurde abgebrochen." --no-wrap
+            exit 0
+        fi
+
+        sleep 1
+        total_seconds=$((total_seconds - 1))
+    done
+
+    # Direktes Herunterfahren, wenn der Countdown abgelaufen ist
+    shutdown -h now
+}
+
+# Eingabefelder für Stunden, Minuten und Sekunden
+input=$(zenity --forms \
+    --title="Countdown für Herunterfahren" \
+    --text="Geben Sie die gewünschte Zeit ein:" \
+    --add-entry="Stunden (optional)" \
+    --add-entry="Minuten (optional)" \
+    --add-entry="Sekunden (optional)")
+
+# Überprüfen, ob der Benutzer die Eingabe abgebrochen hat
+if [[ $? -ne 0 ]]; then
+    exit 1
+fi
+
+# Werte auslesen
+hours=$(echo "$input" | cut -d'|' -f1)
+minutes=$(echo "$input" | cut -d'|' -f2)
+seconds=$(echo "$input" | cut -d'|' -f3)
+
+# Standardwerte setzen, falls Felder leer bleiben
+hours=${hours:-0}
+minutes=${minutes:-0}
+seconds=${seconds:-0}
+
+# Überprüfen, ob die Eingaben gültige Zahlen sind
+if ! [[ "$hours" =~ ^[0-9]*$ && "$minutes" =~ ^[0-9]*$ && "$seconds" =~ ^[0-9]*$ ]]; then
+    zenity --error --text="Ungültige Eingabe! Bitte nur Zahlen eingeben." --no-wrap
+    exit 1
+fi
+
+# Gesamtzeit in Sekunden berechnen
+total_seconds=$((hours * 3600 + minutes * 60 + seconds))
+
+# Überprüfen, ob die Gesamtzeit positiv ist
+if [[ $total_seconds -le 0 ]]; then
+    zenity --error --text="Die Gesamtzeit muss größer als 0 sein!" --no-wrap
+    exit 1
+fi
+
+# Countdown starten
+initial_seconds=$total_seconds
+
+# Abbruchsignal initialisieren
+rm -f /tmp/timer_abort
+
+# Timer-Countdown starten
+(
+    shutdown_with_countdown "$total_seconds"
+) | zenity --progress \
+    --title="Countdown zum Herunterfahren" \
+    --text="Zeit bis zum Herunterfahren: Initialisierung..." \
+    --ok-label="Timer stoppen" \
+    --percentage=0
+
+# Prüfen, ob der Benutzer auf "Timer stoppen" geklickt hat
+if [[ $? -eq 0 ]]; then
+    touch /tmp/timer_abort
+    zenity --info --text="Der Timer wurde gestoppt. Das Herunterfahren wurde abgebrochen." --no-wrap
+fi
+
+exit 0
+

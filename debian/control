@@ -1,0 +1,15 @@
+Source: guideos-shutdown-tool
+Section: misc
+Priority: optional
+Maintainer: Actionschnitzel <actionschnitzel@guideos.de>
+Build-Depends: debhelper (>= 9),bash
+Standards-Version: 0.0.1
+Homepage: https://guideos.de
+
+Package: guideos-shutdown-tool
+Architecture: all
+Depends: ${misc:Depends}, bash, zenity
+Description: A simple tool to setting up a shutdown timer
+ This Tool is a simple bash script to setting up a shutdown timer. 
+ It uses zenity to create a graphical user interface.
+ 

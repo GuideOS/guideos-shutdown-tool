@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Guideos-Shutdown-Tool
+Comment=Plane das herunterfahren deines Computers mit einem Countdown
+Exec=/bin/guideos-shutdown-tool.sh
+Icon=/usr/share/pixmaps/guideos-shutdown-tool.png
+Terminal=false
+Type=Application
+Categories=GuideOS;
+Name[de_DE]=GuideOS-Shutdown-Tool
+
