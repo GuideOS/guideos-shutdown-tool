@@ -1,92 +1,90 @@
 #!/bin/bash
+# shutdown-timer.sh
+# Dieses Skript ermöglicht das Herunterfahren des Systems nach einer benutzerdefinierten Zeit.
+# Es bietet einen Abbruch-Button, um den Countdown zu stoppen.
 
-# Funktion zum Herunterfahren mit Countdown
-shutdown_with_countdown() {
-    local total_seconds="$1"
+# Passwortabfrage mittels Zenity
+PASS=$(zenity --password --title="Sudo Passwort eingeben" --text="Bitte gib Dein Sudo-Passwort ein:")
 
-    while [[ $total_seconds -gt 0 ]]; do
-        # Berechnung der verbleibenden Zeit
-        hours=$((total_seconds / 3600))
-        minutes=$(( (total_seconds % 3600) / 60 ))
-        seconds=$((total_seconds % 60 ))
+# Falls kein Passwort eingegeben wurde, abbrechen.
+if [ -z "$PASS" ]; then
+    zenity --error --text="Es wurde kein Passwort eingegeben. Das Skript wird beendet."
+    exit 1
+fi
 
-        # Countdown-Anzeige aktualisieren
-        echo "# Zeit bis zum Herunterfahren: ${hours} Stunden, ${minutes} Minuten, ${seconds} Sekunden"
-        echo $((100 - (total_seconds * 100 / $initial_seconds)))
-
-        # Überprüfen, ob der Benutzer den Vorgang abgebrochen hat
-        if [[ -f /tmp/timer_abort ]]; then
-            rm /tmp/timer_abort
-            zenity --info --text="Der Timer wurde abgebrochen." --no-wrap
-            exit 0
-        fi
-
-        sleep 1
-        total_seconds=$((total_seconds - 1))
-    done
-
-    # Direktes Herunterfahren, wenn der Countdown abgelaufen ist
-    shutdown -h now
+# Funktion zum Ausführen von Befehlen mit sudo unter Verwendung des eingegebenen Passworts
+run_sudo() {
+    echo "$PASS" | sudo -S "$@"
 }
 
-# Eingabefelder für Stunden, Minuten und Sekunden
-input=$(zenity --forms \
-    --title="Countdown für Herunterfahren" \
-    --text="Geben Sie die gewünschte Zeit ein:" \
-    --add-entry="Stunden (optional)" \
-    --add-entry="Minuten (optional)" \
-    --add-entry="Sekunden (optional)")
-
-# Überprüfen, ob der Benutzer die Eingabe abgebrochen hat
-if [[ $? -ne 0 ]]; then
+# Überprüfe, ob das angegebene Passwort korrekt ist
+if ! echo "$PASS" | sudo -S -v &>/dev/null; then
+    zenity --error --text="Falsches Sudo-Passwort. Das Skript wird beendet."
     exit 1
 fi
 
-# Werte auslesen
-hours=$(echo "$input" | cut -d'|' -f1)
-minutes=$(echo "$input" | cut -d'|' -f2)
-seconds=$(echo "$input" | cut -d'|' -f3)
+# Formular zur Eingabe der Zeit bis zum Shutdown (Stunden, Minuten, Sekunden)
+FORM_RESULT=$(zenity --forms --title="Shutdown Timer" --text="Gib die Zeit bis zum Shutdown an:" \
+                --add-entry="Stunden" --add-entry="Minuten" --add-entry="Sekunden")
 
-# Standardwerte setzen, falls Felder leer bleiben
-hours=${hours:-0}
-minutes=${minutes:-0}
-seconds=${seconds:-0}
+# Falls das Formular abgebrochen wurde, beenden.
+if [ -z "$FORM_RESULT" ]; then
+    exit 0
+fi
 
-# Überprüfen, ob die Eingaben gültige Zahlen sind
-if ! [[ "$hours" =~ ^[0-9]*$ && "$minutes" =~ ^[0-9]*$ && "$seconds" =~ ^[0-9]*$ ]]; then
-    zenity --error --text="Ungültige Eingabe! Bitte nur Zahlen eingeben." --no-wrap
+# Die Felder werden durch "|" getrennt.
+IFS="|"
+read HOURS MINUTES SECONDS <<< "$FORM_RESULT"
+unset IFS
+
+# Leere Eingaben werden als 0 gewertet.
+HOURS=${HOURS:-0}
+MINUTES=${MINUTES:-0}
+SECONDS=${SECONDS:-0}
+
+# Überprüfen, ob die Eingaben ausschließlich Zahlen enthalten
+if ! [[ "$HOURS" =~ ^[0-9]+$ && "$MINUTES" =~ ^[0-9]+$ && "$SECONDS" =~ ^[0-9]+$ ]]; then
+    zenity --error --text="Bitte gib in allen Feldern nur Zahlen ein."
     exit 1
 fi
 
-# Gesamtzeit in Sekunden berechnen
-total_seconds=$((hours * 3600 + minutes * 60 + seconds))
+# Gesamtdauer in Sekunden berechnen
+TOTAL_SECONDS=$(( HOURS * 3600 + MINUTES * 60 + SECONDS ))
 
-# Überprüfen, ob die Gesamtzeit positiv ist
-if [[ $total_seconds -le 0 ]]; then
-    zenity --error --text="Die Gesamtzeit muss größer als 0 sein!" --no-wrap
+# Falls die Gesamtdauer 0 Sekunden beträgt, wird das Skript beendet.
+if [ "$TOTAL_SECONDS" -le 0 ]; then
+    zenity --error --text="Die eingegebene Zeit muss größer als 0 sein."
     exit 1
 fi
 
-# Countdown starten
-initial_seconds=$total_seconds
+# Info-Fenster: Zeige an, wann der Shutdown erfolgen soll.
+zenity --info --title="Shutdown Timer" --width=400 \
+       --text="Das System wird in $HOURS Stunde(n), $MINUTES Minute(n) und $SECONDS Sekunde(n) heruntergefahren."
 
-# Abbruchsignal initialisieren
-rm -f /tmp/timer_abort
-
-# Timer-Countdown starten
+# Countdown starten und in einem Zenity-Progress-Fenster mit Abbruch-Möglichkeit anzeigen.
 (
-    shutdown_with_countdown "$total_seconds"
-) | zenity --progress \
-    --title="Countdown zum Herunterfahren" \
-    --text="Zeit bis zum Herunterfahren: Initialisierung..." \
-    --ok-label="Timer stoppen" \
-    --percentage=0
+    for (( remaining=TOTAL_SECONDS; remaining>=0; remaining-- )); do
+        percent=$(( 100 * (TOTAL_SECONDS - remaining) / TOTAL_SECONDS ))
+        hrs=$(( remaining / 3600 ))
+        mins=$(( (remaining % 3600) / 60 ))
+        secs=$(( remaining % 60 ))
+        time_str=$(printf "%02d:%02d:%02d" "$hrs" "$mins" "$secs")
+        echo "$percent"
+        echo "# Verbleibende Zeit: $time_str"
+        sleep 1
+    done
+) | zenity --progress --title="Shutdown Countdown" \
+           --text="Countdown läuft..." \
+           --percentage=0 \
+           --auto-close \
+           --cancel-label="Abbrechen"
 
-# Prüfen, ob der Benutzer auf "Timer stoppen" geklickt hat
-if [[ $? -eq 0 ]]; then
-    touch /tmp/timer_abort
-    zenity --info --text="Der Timer wurde gestoppt. Das Herunterfahren wurde abgebrochen." --no-wrap
+# Prüfen, ob der Benutzer den Countdown abgebrochen hat
+if [ $? -ne 0 ]; then
+    zenity --info --text="Der Shutdown wurde abgebrochen."
+    exit 0
 fi
 
-exit 0
+# Wenn der Countdown normal endet, fährt der Rechner automatisch herunter.
+run_sudo shutdown -h now
 

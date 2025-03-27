@@ -8,7 +8,7 @@ mkdir -p debian/guideos-shutdown-tool/usr/share/applications
 cat > debian/guideos-shutdown-tool/usr/share/applications/guideos-shutdown-tool.desktop <<EOL
 [Desktop Entry]
 Version=1.0
-Name=Shutdown Tool
+Name=GuideOS Shutdown Tool
 Comment=Zeitschaltuhr für den Shutdown
 Exec=guideos-shutdown-tool
 Icon=guideos-shutdown-tool
