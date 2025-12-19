@@ -6,7 +6,7 @@ Der **GuideOS Shutdown-Timer** ist ein Zenity-basiertes Bash-Skript, das ein zei
 Es erlaubt die Eingabe einer beliebigen Zeitspanne (Stunden, Minuten, Sekunden) und zeigt den Countdown in einem grafischen Fortschrittsfenster mit Abbruchoption an.  
 Dadurch können geplante Shutdowns komfortabel gesteuert und jederzeit abgebrochen werden.
 
-- **Entwickler:** evilware666, helga & Copilot  
+- **Entwickler:** evilware666 & Helga
 - **Version:** 1.1  
 - **Datum:** 19.12.2025  
 - **Lizenz:** MIT  
