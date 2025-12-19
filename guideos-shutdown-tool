@@ -1,7 +1,17 @@
+
 #!/bin/bash
-# shutdown-timer.sh
-# Dieses Skript ermöglicht das Herunterfahren des Systems nach einer benutzerdefinierten Zeit.
-# Es bietet einen Abbruch-Button, um den Countdown zu stoppen.
+# ==============================================================================
+# GuideOS Shutdown-Timer – Zeitgesteuertes Herunterfahren mit GUI & Abbruchoption
+#
+# Autor  : evilware666
+# Version: 1.1
+# Datum  :19.12.2025
+# Lizenz: MIT
+# ==============================================================================
+
+# System-Theme übernehmen
+#GTK_THEME=$(gsettings get org.cinnamon.desktop.interface gtk-theme | tr -d "'")
+#export GTK_THEME
 
 # Passwortabfrage mittels Zenity
 PASS=$(zenity --password --title="Sudo Passwort eingeben" --text="Bitte gib Dein Sudo-Passwort ein:")
